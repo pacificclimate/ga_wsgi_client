@@ -2,12 +2,16 @@ import atexit
 import multiprocessing
 from datetime import datetime
 from urllib import urlencode
+import logging
 
 from webob.request import Request
 from webob.response import Response
 
+logger = logging.getLogger(__name__)
+
 class AnalyticsMiddleware(object):
     def __init__(self, app, tracking_id):
+        logger.debug('Initializing the AnalyticsMiddleware with tracking_id=%s', tracking_id)
         self.tracking_id = tracking_id
         self.wrapped_app = app
         self.hit_queue = multiprocessing.Queue()
@@ -16,7 +20,7 @@ class AnalyticsMiddleware(object):
 
         @atexit.register
         def shutdown():
-            '''Send a poison pill to the queue runner'''
+            logger.debug('Sending a poison pill to the queue runner')
             self.hit_queue.put(None)
 
     def __call__(self, environ, start_response):
@@ -90,8 +94,12 @@ class AnalyticsSubmitter(object):
                      'qt': queue_time
                      })
         req.body = urlencode(item)
-        # FIXME: Convert these to DEBUG logging and error on non 2xx statuses
-        print req.body
+
+        logger.debug('Submitting these analytics to Google: %s', req.body)
         res = req.get_response()
-        print res.status
+        if res.status == '200 OK':
+            logger.debug('200 OK')
+        else:
+            logger.error('Google returned a response status: %s', res.status)
+
         return res.status
