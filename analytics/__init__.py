@@ -30,8 +30,10 @@ class AnalyticsMiddleware(object):
             id_ = ''
 
         # Pass the response through
+        content_length = 0
         app_iter = self.wrapped_app(environ, start_response)
         for chunk in app_iter:
+            content_length += len(chunk)
             yield chunk
         end_time = datetime.now()
             
@@ -46,6 +48,7 @@ class AnalyticsMiddleware(object):
              'pdt': int((end_time - start_time).total_seconds() * 1000),
              'cd1': email,
              'cid': id_,
+             'cm1': content_length,
              'dr': req.headers['Referer'] if 'Referer' in req.headers else '',
             }
         ua = req.headers['User-Agent'] if 'User-Agent' in req.headers else None
