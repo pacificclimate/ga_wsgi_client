@@ -1,3 +1,4 @@
+import sys
 import atexit
 import multiprocessing
 from datetime import datetime
@@ -20,10 +21,11 @@ class AnalyticsMiddleware(object):
 
         @atexit.register
         def shutdown():
-            logger.debug('Sending a poison pill to the queue runner')
+            logger.info('Sending a poison pill to the queue runner')
             self.hit_queue.put(None)
 
     def __call__(self, environ, start_response):
+        logger.debug("AnalyticsMiddleware got called")
         start_time = datetime.now()
         req = Request(environ)
         # If we have a session id, use it
@@ -69,9 +71,10 @@ class Consumer(multiprocessing.Process):
             while True:
                 next_task = self.hit_queue.get()
                 if next_task is None:
-                    # Poison Pill says exit                                                                                                                                     print '%s: Exiting' % proc_name
+                    # Poison Pill says exit
+                    logger.info('%s: Exiting' % proc_name)
                     break
-                print '{}: {}'.format(proc_name, next_task)
+                logger.debug('{}: {}'.format(proc_name, next_task))
                 answer = next_task()
         except:
             pass
@@ -82,11 +85,15 @@ class AnalyticsSubmitter(object):
         self.hit_time = hit_time
         self.user_agent = user_agent
 
+    def __repr__(self):
+        return "AnalyticsSubmitter('{}', '{}', '{}')".format(self.parameters, self.hit_time, self.user_agent)
+
     def __call__(self):
         item = self.parameters
         req = Request.blank('https://ssl.google-analytics.com/collect')
         req.method = 'POST'
         if self.user_agent:
+            logger.debug('Setting User-Agent to: {}'.format(self.user_agent))
             req.headers['User-Agent'] = self.user_agent
 
         queue_time = int((datetime.now() - self.hit_time).total_seconds() * 1000)
