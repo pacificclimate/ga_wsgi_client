@@ -5,10 +5,10 @@ from setuptools import setup
 __version__ = (0, 1)
 
 setup(
-    name="analytics",
+    name="ga-wsgi-client",
     description="A WSGI middleware package for tracking web usage with Google Analytics",
     keywords="web wsgi google",
-    packages=['analytics'],
+    packages=['ga_wsgi_client'],
     version='.'.join(str(d) for d in __version__),
     url="http://www.pacificclimate.org/",
     author="James Hiebert",
